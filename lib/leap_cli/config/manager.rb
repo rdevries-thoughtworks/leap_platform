@@ -315,8 +315,8 @@ module LeapCli
         end
 
         # inherit from tags
-        if node.vagrant?
-          node['tags'] = (node['tags'] || []).to_a + ['local']
+        if node.vagrant? && !node['tags'].any?
+          node['tags'] = ['local']
         end
         if node['tags']
           node['tags'].to_a.each do |node_tag|
@@ -343,6 +343,11 @@ module LeapCli
       #
       # Guess the environment of the node from the tag names.
       #
+      # 1. use environment property if explicitly set in the node
+      # 2. use tag if tag name is an environment name
+      # 3. use local if node is vagrant node
+      # 4. use default environment.
+      #
       # Technically, this is wrong: a tag that sets the environment might not be
       # named the same as the environment. This code assumes that it is.
       #
@@ -351,10 +356,11 @@ module LeapCli
       # determine the node's properties.
       #
       def guess_node_env(node)
-        if node.vagrant?
-          return self.env("local")
-        else
-          environment = self.env(default_environment)
+        environment = nil
+        if node['environment']
+          environment = self.env(node['environment'])
+        end
+        if environment.nil?
           if node['tags']
             node['tags'].to_a.each do |tag|
               if self.environment_names.include?(tag)
@@ -362,8 +368,12 @@ module LeapCli
               end
             end
           end
-          return environment
         end
+        if environment.nil? && node.vagrant?
+          environment = self.env("local")
+        end
+        environment ||= self.env(default_environment)
+        environment
       end
 
       #

@@ -78,7 +78,7 @@ module LeapCli; module Commands
     if args.empty?
       nodes = [""]
     else
-      nodes = manager.filter(args)[:environment => "local"].field(:name)
+      nodes = manager.filter(args).values.select {|n| n.vagrant? }.map{|n| n.name}
     end
     if nodes.any?
       vagrant_dir = File.dirname(Path.named_path(:vagrantfile))
